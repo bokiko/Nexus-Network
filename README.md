@@ -1,6 +1,72 @@
 # Nexus Network: Manual Installation Guide
 
-This guide provides step-by-step instructions for installing and running a Nexus Network node. The Nexus Network is a distributed supercomputer that concentrates the world's computing power into a single blockchain.
+This guide provides step-by-step instructions for installing and running a Nexus Network node.
+
+## About Nexus Network
+
+The Nexus Network is a distributed supercomputer that concentrates the world's computing power into a single blockchain. It is powered by the Nexus zkVM, with a goal to condense the entire Internet into a single proof. When you connect to the network via the Nexus App or CLI, your device becomes a node, contributing compute to the network.
+
+The ultimate goal of Nexus is to achieve the Proof Singularity:
+- Compression of all verifiable computation into a single proof
+- Integration of millions of chains and applications
+- Creation of a unified world computer
+
+### Network Information
+
+- **Chain ID**: 393
+- **Native Token**: Nexus Token (NEX)
+- **RPC (HTTP)**: `https://rpc.nexus.xyz/http`
+- **RPC (WebSocket)**: `wss://rpc.nexus.xyz/ws`
+- **Explorer**: `https://explorer.nexus.xyz`
+
+### Hardware and VM Requirements
+
+To run a Nexus node effectively, your system should meet these minimum requirements:
+
+- **CPU**: Modern multi-core processor (4+ cores recommended)
+- **RAM**: Minimum 4GB, 8GB+ recommended
+- **Storage**: 10GB of free space
+- **Network**: Stable internet connection (minimum 10 Mbps)
+- **Operating System**: Linux (Ubuntu 20.04+ recommended), macOS, or Windows with WSL2
+
+#### Running on Virtual Machines
+
+Nexus nodes can run successfully on virtual machines with these considerations:
+
+- Ensure your VM has dedicated CPU cores (not just shared vCPUs)
+- Allocate sufficient RAM (8GB+ recommended)
+- Use a VM with direct network access rather than NAT if possible
+
+
+The Nexus CLI operates by:
+1. Connecting to the Nexus Orchestrator to request work
+2. Receiving proving tasks
+3. Performing required computations
+4. Submitting completed proofs back to the Orchestrator
+
+When linked to an account, nodes earn NEX Points for their contributions, which are converted to Nexus Chain tokens hourly.
+
+
+
+## Account Management
+
+### Proving Modes
+
+You have two options for proving:
+
+1. **Link to Nexus Account (Recommended)**
+   - Create an account at [app.nexus.xyz](https://app.nexus.xyz)
+   - Follow the account linking instructions
+   - Your contributions will earn NEX Points
+   - Track your progress on the leaderboard
+   - Manage all your nodes in one place
+
+2. **Anonymous Proving**
+   - No account required
+   - No NEX Points earned
+   - Contributions not recorded
+
+To earn NEX Points, you must link your CLI to your Nexus account.
 
 ## Prerequisites
 
@@ -77,13 +143,7 @@ There are multiple ways to install the Nexus CLI. Try these methods in order unt
 curl https://cli.nexus.xyz/ | sh
 ```
 
-#### Method 2: Using Cargo
-
-```bash
-cargo install nexus-cli
-```
-
-#### Method 3: Manual Download and Installation
+#### Method 2: Manual Download and Installation
 
 ```bash
 # Create a directory for the installation
@@ -180,33 +240,7 @@ To start the node automatically on system boot:
 (crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
 ```
 
-## Account Management
 
-### Proving Modes
-
-You have two options for proving:
-
-1. **Link to Nexus Account (Recommended)**
-   - Create an account at [app.nexus.xyz](https://app.nexus.xyz)
-   - Follow the account linking instructions
-   - Your contributions will earn NEX Points
-   - Track your progress on the leaderboard
-   - Manage all your nodes in one place
-
-2. **Anonymous Proving**
-   - No account required
-   - No NEX Points earned
-   - Contributions not recorded
-
-To earn NEX Points, you must link your CLI to your Nexus account.
-
-## Network Information
-
-- **Chain ID**: 393
-- **Native Token**: Nexus Token (NEX)
-- **RPC (HTTP)**: `https://rpc.nexus.xyz/http`
-- **RPC (WebSocket)**: `wss://rpc.nexus.xyz/ws`
-- **Explorer**: `https://explorer.nexus.xyz`
 
 ## Troubleshooting
 
@@ -253,14 +287,7 @@ If your node crashes or disconnects:
 - **GitHub Repository**: [https://github.com/nexus-xyz](https://github.com/nexus-xyz)
 - **Whitepaper**: [https://whitepaper.nexus.xyz](https://whitepaper.nexus.xyz)
 
-## About Nexus Network
 
-The Nexus Network is powered by the Nexus zkVM, with a goal to condense the entire Internet into a single proof. When you connect to the network via the Nexus App or CLI, your device becomes a node, contributing compute to the network.
-
-The ultimate goal of Nexus is to achieve the Proof Singularity:
-- Compression of all verifiable computation into a single proof
-- Integration of millions of chains and applications
-- Creation of a unified world computer
 
 ---
 
