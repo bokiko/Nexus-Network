@@ -42,6 +42,27 @@ in_tmux() {
     [ -n "$TMUX" ]
 }
 
+# Check for SKIP_TMUX environment variable
+if [ "${SKIP_TMUX}" = "1" ]; then
+    print_info "Skipping tmux as requested by SKIP_TMUX environment variable"
+    SKIP_TMUX_SESSION=1
+fi
+
+# Check if running in tmux
+if [ "${SKIP_TMUX_SESSION}" != "1" ] && ! in_tmux && [ -t 1 ]; then
+    print_info "Starting tmux session for persistence..."
+    # Check if tmux is installed
+    if command_exists tmux; then
+        # Create a new tmux session and run this script inside it
+        tmux new-session -d -s nexus
+        tmux send-keys -t nexus "bash $(realpath $0)" C-m
+        tmux attach -t nexus
+        exit 0
+    else
+        print_error "tmux is not installed. Will continue without persistent session."
+    fi
+fi
+
 # Display welcome message
 clear
 echo -e "${BOLD}${BLUE}"
@@ -56,22 +77,24 @@ echo -e "This script will guide you through setting up your Nexus node"
 echo -e "and contributing to the network."
 echo
 
-# Check if running in tmux
-if ! in_tmux; then
-    print_info "Starting tmux session for persistence..."
-    # Create a new tmux session and run this script inside it
-    tmux new-session -d -s nexus
-    tmux send-keys -t nexus "bash $(realpath $0)" C-m
-    tmux attach -t nexus
-    exit 0
-fi
-
 # Display system information
 print_header "System Information"
 echo "OS: $(uname -s)"
-echo "CPU: $(grep "model name" /proc/cpuinfo | head -n 1 | cut -d ':' -f 2 | sed 's/^[ \t]*//')"
-echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
-echo "Disk Space: $(df -h / | awk 'NR==2 {print $4}') available"
+if [ -f /proc/cpuinfo ]; then
+    echo "CPU: $(grep "model name" /proc/cpuinfo | head -n 1 | cut -d ':' -f 2 | sed 's/^[ \t]*//' || echo "Unknown")"
+else
+    echo "CPU: Unable to determine"
+fi
+if command_exists free; then
+    echo "Memory: $(free -h | grep Mem | awk '{print $2}' || echo "Unknown")"
+else
+    echo "Memory: Unable to determine"
+fi
+if command_exists df; then
+    echo "Disk Space: $(df -h / | awk 'NR==2 {print $4}' || echo "Unknown") available"
+else
+    echo "Disk Space: Unable to determine"
+fi
 echo
 
 # Check for prerequisites
@@ -83,7 +106,16 @@ if command_exists curl; then
 else
     print_error "curl is not installed"
     echo "Installing curl..."
-    sudo apt-get update && sudo apt-get install -y curl
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y curl
+    elif command_exists yum; then
+        sudo yum install -y curl
+    elif command_exists brew; then
+        brew install curl
+    else
+        print_error "Unable to install curl. Please install it manually."
+        exit 1
+    fi
 fi
 
 # Check for tmux
@@ -92,7 +124,15 @@ if command_exists tmux; then
 else
     print_error "tmux is not installed"
     echo "Installing tmux..."
-    sudo apt-get update && sudo apt-get install -y tmux
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y tmux
+    elif command_exists yum; then
+        sudo yum install -y tmux
+    elif command_exists brew; then
+        brew install tmux
+    else
+        print_error "Unable to install tmux. Please install it manually."
+    fi
 fi
 
 # Check for nano
@@ -101,7 +141,15 @@ if command_exists nano; then
 else
     print_error "nano is not installed"
     echo "Installing nano..."
-    sudo apt-get update && sudo apt-get install -y nano
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y nano
+    elif command_exists yum; then
+        sudo yum install -y nano
+    elif command_exists brew; then
+        brew install nano
+    else
+        print_error "Unable to install nano. Please install it manually."
+    fi
 fi
 
 # Check for Rust
@@ -119,7 +167,15 @@ if command_exists cmake; then
     print_success "CMake is installed ($(cmake --version | head -n 1))"
 else
     print_info "CMake is not installed. Installing now..."
-    sudo apt-get update && sudo apt-get install -y cmake
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y cmake
+    elif command_exists yum; then
+        sudo yum install -y cmake
+    elif command_exists brew; then
+        brew install cmake
+    else
+        print_error "Unable to install CMake. Please install it manually."
+    fi
     print_success "CMake installed successfully"
 fi
 
@@ -128,14 +184,26 @@ if command_exists protoc; then
     print_success "Protocol Buffers is installed ($(protoc --version))"
 else
     print_info "Protocol Buffers is not installed. Installing now..."
-    sudo apt-get update && sudo apt-get install -y protobuf-compiler
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y protobuf-compiler
+    elif command_exists yum; then
+        sudo yum install -y protobuf-compiler
+    elif command_exists brew; then
+        brew install protobuf
+    else
+        print_error "Unable to install Protocol Buffers. Please install it manually."
+    fi
     print_success "Protocol Buffers installed successfully"
 fi
 
 # Add RISC-V target
 print_info "Adding RISC-V target for Rust..."
-rustup target add riscv32i-unknown-none-elf
-print_success "RISC-V target added successfully"
+if command_exists rustup; then
+    rustup target add riscv32i-unknown-none-elf
+    print_success "RISC-V target added successfully"
+else
+    print_error "rustup not found. Please make sure Rust is installed correctly."
+fi
 
 # Ask user if they want to use the Quick Install or Manual Installation
 print_header "Installation Options"
@@ -156,8 +224,17 @@ if [ "$install_choice" = "1" ]; then
 else
     print_header "Manual Installation"
     print_info "Installing system dependencies..."
-    sudo apt update && sudo apt upgrade -y
-    sudo apt install -y build-essential pkg-config libssl-dev git-all
+    if command_exists apt-get; then
+        sudo apt update && sudo apt upgrade -y
+        sudo apt install -y build-essential pkg-config libssl-dev git-all
+    elif command_exists yum; then
+        sudo yum update -y
+        sudo yum install -y gcc gcc-c++ make pkgconfig openssl-devel git
+    elif command_exists brew; then
+        brew install openssl git
+    else
+        print_error "Unsupported package manager. Please install dependencies manually."
+    fi
     print_success "System dependencies installed"
     
     print_info "Installing Nexus CLI manually..."
@@ -220,15 +297,24 @@ EOF
 chmod +x $HOME/start_nexus.sh
 
 # Create crontab entry
-(crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
-
-print_success "Automatic startup configured"
+if command_exists crontab; then
+    (crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
+    print_success "Automatic startup configured"
+else
+    print_error "crontab not found. Unable to set up automatic startup."
+    print_info "You can manually start your Nexus node by running:"
+    echo "tmux new-session -d -s nexus 'nexus-cli'"
+fi
 
 # Extracting node IP
 print_header "Node IP Information"
-PUBLIC_IP=$(curl -s https://api.ipify.org)
-print_info "Your node's public IP address: $PUBLIC_IP"
-echo "You may need this information when managing your node on the Nexus website."
+if command_exists curl; then
+    PUBLIC_IP=$(curl -s https://api.ipify.org 2>/dev/null || echo "Unable to determine")
+    print_info "Your node's public IP address: $PUBLIC_IP"
+    echo "You may need this information when managing your node on the Nexus website."
+else
+    print_error "curl not found. Unable to determine public IP address."
+fi
 
 # Final instructions
 print_header "Getting Started"
