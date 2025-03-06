@@ -37,9 +37,6 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Skip tmux completely - too many issues with it in various environments
-# We'll just run the script directly
-
 # Display welcome message
 clear
 echo -e "${BOLD}${BLUE}"
@@ -182,43 +179,50 @@ else
     print_error "rustup not found. Please make sure Rust is installed correctly."
 fi
 
-# Ask user if they want to use the Quick Install or Manual Installation
-print_header "Installation Options"
-echo "1) Quick Install (Recommended)"
-echo "2) Manual Installation"
-read -p "Enter your choice (1 or 2): " install_choice
+# Make sure the PATH includes cargo
+if [ -f "$HOME/.cargo/env" ]; then
+    source "$HOME/.cargo/env"
+    print_success "Cargo environment loaded"
+fi
 
-if [ "$install_choice" = "1" ]; then
-    print_header "Installing Nexus CLI"
-    print_info "Running quick install script..."
-    curl https://cli.nexus.xyz/ | sh
-    if [ $? -eq 0 ]; then
-        print_success "Nexus CLI installed successfully"
-    else
-        print_error "Failed to install Nexus CLI"
-        exit 1
-    fi
+# Installing Nexus CLI
+print_header "Installing Nexus CLI"
+print_info "Downloading and installing Nexus CLI..."
+
+# Ensure we have a directory for binaries
+if [ ! -d "$HOME/.local/bin" ]; then
+    mkdir -p "$HOME/.local/bin"
+    print_info "Created $HOME/.local/bin directory"
+fi
+
+# Add local bin to PATH if not already there
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/.local/bin:$PATH"
+    print_info "Added $HOME/.local/bin to PATH"
+fi
+
+# Download and install the CLI directly
+curl -sL https://cli.nexus.xyz/download | tar xz -C "$HOME/.local/bin"
+chmod +x "$HOME/.local/bin/nexus-cli"
+print_success "Nexus CLI installed at $HOME/.local/bin/nexus-cli"
+
+# Verify installation
+if command_exists nexus-cli; then
+    print_success "Nexus CLI installed successfully!"
+    NEXUS_CLI_PATH=$(which nexus-cli)
+    print_info "Nexus CLI path: $NEXUS_CLI_PATH"
 else
-    print_header "Manual Installation"
-    print_info "Installing system dependencies..."
-    if command_exists apt-get; then
-        sudo apt update && sudo apt upgrade -y
-        sudo apt install -y build-essential pkg-config libssl-dev git-all
-    elif command_exists yum; then
-        sudo yum update -y
-        sudo yum install -y gcc gcc-c++ make pkgconfig openssl-devel git
-    elif command_exists brew; then
-        brew install openssl git
-    else
-        print_error "Unsupported package manager. Please install dependencies manually."
-    fi
-    print_success "System dependencies installed"
+    print_error "Nexus CLI installation verification failed"
+    print_info "Creating a symbolic link..."
+    ln -sf "$HOME/.local/bin/nexus-cli" /usr/local/bin/nexus-cli 2>/dev/null || sudo ln -sf "$HOME/.local/bin/nexus-cli" /usr/local/bin/nexus-cli
     
-    print_info "Installing Nexus CLI manually..."
-    # Here you would place manual installation steps
-    # This is a placeholder for the actual manual installation process
-    print_info "Manual installation requires specific steps based on your system."
-    print_info "Please refer to the official documentation for detailed instructions."
+    if command_exists nexus-cli; then
+        print_success "Nexus CLI symlink created successfully!"
+    else
+        print_error "Failed to create symlink. You may need to restart your shell or run: source ~/.bashrc"
+        print_info "You can run Nexus CLI directly using: $HOME/.local/bin/nexus-cli"
+    fi
 fi
 
 # Setup and Configuration
@@ -257,12 +261,19 @@ if [ "$has_account" = "n" ]; then
     read -p "Press Enter once you have created an account..."
 fi
 
+# Define the CLI path for the scripts
+if command_exists nexus-cli; then
+    CLI_PATH=$(which nexus-cli)
+else
+    CLI_PATH="$HOME/.local/bin/nexus-cli"
+fi
+
 # Setup startup instructions - without using tmux
 print_header "Manual Node Startup"
 print_info "To run your Nexus node in the background, use these commands:"
 echo 
 echo "Start the node in the background:"
-echo "nohup nexus-cli > nexus.log 2>&1 &"
+echo "nohup $CLI_PATH > nexus.log 2>&1 &"
 echo
 echo "Check if it's running:"
 echo "ps aux | grep nexus-cli"
@@ -275,11 +286,11 @@ echo "pkill -f nexus-cli"
 echo
 
 # Create a simple startup script
-cat > $HOME/start_nexus.sh << 'EOF'
+cat > $HOME/start_nexus.sh << EOF
 #!/bin/bash
 # Start Nexus node in the background
-nohup nexus-cli > $HOME/nexus.log 2>&1 &
-echo "Nexus CLI started in background. Check logs with: tail -f $HOME/nexus.log"
+nohup $CLI_PATH > \$HOME/nexus.log 2>&1 &
+echo "Nexus CLI started in background. Check logs with: tail -f \$HOME/nexus.log"
 EOF
 
 chmod +x $HOME/start_nexus.sh
@@ -309,7 +320,7 @@ fi
 # Final instructions
 print_header "Getting Started"
 print_info "To start your Nexus node, run the following command:"
-echo "nexus-cli"
+echo "$CLI_PATH"
 echo
 print_info "Or to run it in the background:"
 echo "./start_nexus.sh"
@@ -333,3 +344,9 @@ echo
 print_success "Onboarding script completed successfully!"
 echo "You are now ready to contribute to the Nexus Network."
 echo "Thank you for being part of the Nexus ecosystem!"
+
+# Let the user know they may need to restart their shell
+print_info "NOTE: If the 'nexus-cli' command is not found, please try:"
+echo "1. Restart your terminal session"
+echo "2. Run: source ~/.bashrc"
+echo "3. Or use the full path: $CLI_PATH"
