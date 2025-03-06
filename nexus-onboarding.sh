@@ -37,31 +37,8 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check if running in tmux
-in_tmux() {
-    [ -n "$TMUX" ]
-}
-
-# Check for SKIP_TMUX environment variable
-if [ "${SKIP_TMUX}" = "1" ]; then
-    print_info "Skipping tmux as requested by SKIP_TMUX environment variable"
-    SKIP_TMUX_SESSION=1
-fi
-
-# Check if running in tmux
-if [ "${SKIP_TMUX_SESSION}" != "1" ] && ! in_tmux && [ -t 1 ]; then
-    print_info "Starting tmux session for persistence..."
-    # Check if tmux is installed
-    if command_exists tmux; then
-        # Create a new tmux session and run this script inside it
-        tmux new-session -d -s nexus
-        tmux send-keys -t nexus "bash $(realpath $0)" C-m
-        tmux attach -t nexus
-        exit 0
-    else
-        print_error "tmux is not installed. Will continue without persistent session."
-    fi
-fi
+# Skip tmux completely - too many issues with it in various environments
+# We'll just run the script directly
 
 # Display welcome message
 clear
@@ -280,30 +257,43 @@ if [ "$has_account" = "n" ]; then
     read -p "Press Enter once you have created an account..."
 fi
 
-# Setup automatic node startup
-print_header "Automatic Node Startup"
-print_info "Setting up automatic startup for Nexus node when system reboots..."
+# Setup startup instructions - without using tmux
+print_header "Manual Node Startup"
+print_info "To run your Nexus node in the background, use these commands:"
+echo 
+echo "Start the node in the background:"
+echo "nohup nexus-cli > nexus.log 2>&1 &"
+echo
+echo "Check if it's running:"
+echo "ps aux | grep nexus-cli"
+echo
+echo "View the log:"
+echo "tail -f nexus.log"
+echo
+echo "Stop the node:"
+echo "pkill -f nexus-cli"
+echo
 
-# Create the startup script
+# Create a simple startup script
 cat > $HOME/start_nexus.sh << 'EOF'
 #!/bin/bash
-# Start Nexus node in a tmux session
-if ! tmux has-session -t nexus 2>/dev/null; then
-    tmux new-session -d -s nexus
-    tmux send-keys -t nexus "nexus-cli" C-m
-fi
+# Start Nexus node in the background
+nohup nexus-cli > $HOME/nexus.log 2>&1 &
+echo "Nexus CLI started in background. Check logs with: tail -f $HOME/nexus.log"
 EOF
 
 chmod +x $HOME/start_nexus.sh
 
-# Create crontab entry
+print_info "A startup script has been created at $HOME/start_nexus.sh"
+print_info "You can run it with: ./start_nexus.sh"
+
+# Add to crontab if available
 if command_exists crontab; then
-    (crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
-    print_success "Automatic startup configured"
-else
-    print_error "crontab not found. Unable to set up automatic startup."
-    print_info "You can manually start your Nexus node by running:"
-    echo "tmux new-session -d -s nexus 'nexus-cli'"
+    read -p "Would you like to start Nexus automatically on reboot? (y/n): " auto_start
+    if [ "$auto_start" = "y" ]; then
+        (crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
+        print_success "Automatic startup configured"
+    fi
 fi
 
 # Extracting node IP
@@ -321,11 +311,8 @@ print_header "Getting Started"
 print_info "To start your Nexus node, run the following command:"
 echo "nexus-cli"
 echo
-print_info "To check the status of your node, you can connect to the tmux session:"
-echo "tmux attach -t nexus"
-echo
-print_info "To detach from the tmux session without stopping your node, press:"
-echo "CTRL+B, then D"
+print_info "Or to run it in the background:"
+echo "./start_nexus.sh"
 echo
 
 print_header "Network Information"
