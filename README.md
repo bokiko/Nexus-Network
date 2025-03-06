@@ -1,80 +1,267 @@
-Here's the complete README.md file in a single, separate file:
+# Nexus Network: Manual Installation Guide
 
-# Nexus Network Onboarding Script
+This guide provides step-by-step instructions for installing and running a Nexus Network node. The Nexus Network is a distributed supercomputer that concentrates the world's computing power into a single blockchain.
 
-An automated script to simplify the process of setting up and running a Nexus Network node.
+## Prerequisites
 
-## Features
+Before starting, ensure your system has the following dependencies:
 
-- Automatic installation of prerequisites (Rust, CMake, Protocol Buffers)
-- Quick setup with guided instructions
-- Tmux integration for persistent sessions
-- Automatic node restart on system reboot
-- Network configuration guidance
-- Support for both quick and manual installation options
+- **Rust and Cargo**: Required for building the Nexus CLI
+- **CMake**: Required for compiling certain dependencies
+- **Protocol Buffers**: Required for data serialization
+- **Git**: Required for cloning repositories
+- **Build essentials**: Required for compilation
 
-## Usage
+## Installation Steps
 
-Run the script using:
+### 1. Install Required Dependencies
 
-```bash
-curl -s https://raw.githubusercontent.com/bokiko/nexus-network/main/nexus-onboarding.sh | bash
-```
-
-Or download and run manually:
+#### Ubuntu/Debian:
 
 ```bash
-chmod +x nexus-onboarding.sh
-./nexus-onboarding.sh
+# Update package lists
+sudo apt update
+sudo apt upgrade -y
+
+# Install essential packages
+sudo apt install -y build-essential pkg-config libssl-dev git-all curl cmake protobuf-compiler
 ```
 
-## What Does This Script Do?
+#### CentOS/RHEL/Fedora:
 
-1. **Checks and Installs Prerequisites**
-   - Verifies if curl, tmux, and nano are installed
-   - Installs Rust, CMake, and Protocol Buffers if needed
-   - Adds the required RISC-V target for Rust
+```bash
+# Update system
+sudo yum update -y
 
-2. **Offers Installation Options**
-   - Quick Install: Uses the official Nexus installer
-   - Manual Installation: Guides through the manual setup process
+# Install essential packages
+sudo yum install -y gcc gcc-c++ make pkgconfig openssl-devel git curl cmake protobuf-compiler
+```
 
-3. **Configures Your Environment**
-   - Sets up tmux for persistent sessions
-   - Creates an auto-start script for system reboots
-   - Displays your node's public IP address
+#### macOS:
 
-4. **Provides Network Information**
-   - Chain ID: 393
-   - Native Token: Nexus Token (NEX)
-   - RPC (HTTP): https://rpc.nexus.xyz/http
-   - RPC (WebSocket): wss://rpc.nexus.xyz/ws
+```bash
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install cmake protobuf curl git openssl
+```
+
+### 2. Install Rust and Cargo
+
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Add Rust to your path
+source $HOME/.cargo/env
+
+# Check if Rust is installed correctly
+rustc --version
+cargo --version
+```
+
+### 3. Add RISC-V Target
+
+```bash
+rustup target add riscv32i-unknown-none-elf
+```
+
+### 4. Install the Nexus CLI
+
+There are multiple ways to install the Nexus CLI. Try these methods in order until one works:
+
+#### Method 1: Official Installer
+
+```bash
+curl https://cli.nexus.xyz/ | sh
+```
+
+#### Method 2: Using Cargo
+
+```bash
+cargo install nexus-cli
+```
+
+#### Method 3: Manual Download and Installation
+
+```bash
+# Create a directory for the installation
+mkdir -p ~/nexus-temp
+cd ~/nexus-temp
+
+# Download the installer and inspect it
+curl -s https://cli.nexus.xyz/ -o install.sh
+cat install.sh  # Check what the script does
+bash install.sh
+```
+
+#### Method 4: Check GitHub for Latest Release
+
+Visit the [Nexus CLI releases page](https://github.com/nexus-xyz/nexus-cli/releases) (if available) to download the latest version manually.
+
+### 5. Verify Installation
+
+After installation, verify that the CLI is properly installed:
+
+```bash
+# Check if nexus-cli is in your PATH
+which nexus-cli
+
+# If not found, try to find it in common locations
+find ~ -name "nexus-cli" 2>/dev/null
+```
+
+If the CLI is installed but not in your PATH, add it:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Running Your Nexus Node
+
+### Start in the Foreground
+
+To run the CLI in the foreground:
+
+```bash
+nexus-cli
+```
+
+When you run it for the first time, you'll need to:
+1. Accept the Terms of Use
+2. Choose between anonymous or linked proving
+
+### Start in the Background
+
+To run the CLI in the background:
+
+```bash
+# Start in the background
+nohup nexus-cli > nexus.log 2>&1 &
+
+# Check if it's running
+ps aux | grep nexus-cli
+
+# View the logs
+tail -f nexus.log
+
+# Stop the node
+pkill -f nexus-cli
+```
+
+### Create a Startup Script
+
+For easier management, create a startup script:
+
+```bash
+cat > ~/start_nexus.sh << 'EOF'
+#!/bin/bash
+# Start Nexus node in the background
+nohup nexus-cli > $HOME/nexus.log 2>&1 &
+echo "Nexus CLI started in background. Check logs with: tail -f $HOME/nexus.log"
+EOF
+
+chmod +x ~/start_nexus.sh
+```
+
+Now you can start your node with:
+
+```bash
+~/start_nexus.sh
+```
+
+### Set Up Automatic Startup
+
+To start the node automatically on system boot:
+
+```bash
+(crontab -l 2>/dev/null; echo "@reboot $HOME/start_nexus.sh") | crontab -
+```
+
+## Account Management
+
+### Proving Modes
+
+You have two options for proving:
+
+1. **Link to Nexus Account (Recommended)**
+   - Create an account at [app.nexus.xyz](https://app.nexus.xyz)
+   - Follow the account linking instructions
+   - Your contributions will earn NEX Points
+   - Track your progress on the leaderboard
+   - Manage all your nodes in one place
+
+2. **Anonymous Proving**
+   - No account required
+   - No NEX Points earned
+   - Contributions not recorded
+
+To earn NEX Points, you must link your CLI to your Nexus account.
+
+## Network Information
+
+- **Chain ID**: 393
+- **Native Token**: Nexus Token (NEX)
+- **RPC (HTTP)**: `https://rpc.nexus.xyz/http`
+- **RPC (WebSocket)**: `wss://rpc.nexus.xyz/ws`
+- **Explorer**: `https://explorer.nexus.xyz`
+
+## Troubleshooting
+
+### Command Not Found
+
+If you encounter "command not found" after installation:
+
+1. Find where the binary was installed:
+   ```bash
+   find ~ -name "nexus-cli" 2>/dev/null
+   ```
+
+2. Create a symbolic link to a directory in your PATH:
+   ```bash
+   sudo ln -sf /path/to/found/nexus-cli /usr/local/bin/nexus-cli
+   ```
+
+3. Or add the directory to your PATH:
+   ```bash
+   echo 'export PATH="/path/to/directory:$PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+### Installation Fails
+
+If installation fails:
+1. Check your internet connection
+2. Ensure all dependencies are properly installed
+3. Check your Rust and Cargo versions
+4. Try a different installation method
+
+### Node Crashes or Disconnects
+
+If your node crashes or disconnects:
+1. Check the log file for error messages
+2. Ensure your system meets the minimum requirements
+3. Check your internet connection
+4. Join the Discord community for support
+
+## Additional Resources
+
+- **Nexus Documentation**: [https://docs.nexus.xyz](https://docs.nexus.xyz)
+- **Discord Community**: [https://discord.gg/nexus](https://discord.gg/nexus)
+- **GitHub Repository**: [https://github.com/nexus-xyz](https://github.com/nexus-xyz)
+- **Whitepaper**: [https://whitepaper.nexus.xyz](https://whitepaper.nexus.xyz)
 
 ## About Nexus Network
 
-The Nexus Network is a distributed supercomputer that concentrates the world's computing power into a single blockchain: the Nexus Layer-1. It is powered by the Nexus zkVM with a goal to condense the entire Internet into a single proof.
+The Nexus Network is powered by the Nexus zkVM, with a goal to condense the entire Internet into a single proof. When you connect to the network via the Nexus App or CLI, your device becomes a node, contributing compute to the network.
 
-When you connect to the network via the Nexus App or CLI, your device becomes a node, contributing compute to the network, which helps verify computations on the Internet.
+The ultimate goal of Nexus is to achieve the Proof Singularity:
+- Compression of all verifiable computation into a single proof
+- Integration of millions of chains and applications
+- Creation of a unified world computer
 
-By participating in the Nexus Network and linking your account, you can earn NEX Points for your contributions.
+---
 
-## Requirements
-
-- A Linux-based system (Ubuntu/Debian recommended)
-- Internet connection
-- Basic terminal knowledge
-
-## Support
-
-If you encounter any issues or have questions, please:
-- Open an issue in this repository
-- Join the Nexus Discord community
-- Refer to the official documentation at https://docs.nexus.xyz
-
-## About This Script
-
-Created by [Bokiko](https://github.com/bokiko) for the Cloudiko.io community.
-
-## License
-
-MIT
+**Note**: This guide was created by [Bokiko](https://github.com/bokiko) for the Cloudiko.io community.
