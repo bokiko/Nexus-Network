@@ -6,6 +6,22 @@
 
 The Nexus Network is a distributed supercomputer that concentrates computing power into a single blockchain. By running a node, you contribute to this network and can earn NEX Points.
 
+## System Requirements
+
+### Minimum Requirements
+- **CPU**: 4 cores
+- **RAM**: 8GB (will use swap if available)
+- **Storage**: 10GB free space
+- **Network**: Stable internet connection
+
+### Recommended Requirements
+- **CPU**: 8+ cores
+- **RAM**: 16GB or more
+- **Storage**: 20GB SSD
+- **Network**: High-speed internet connection
+
+> **IMPORTANT**: The Nexus zkVM process is memory-intensive. If you have less than 12GB RAM, you may encounter "Out of Memory" errors. Adding swap space can help but will impact performance.
+
 ## Installation
 
 ### Prerequisites (Install These First)
@@ -80,7 +96,22 @@ sudo cp target/release/nexus-client /usr/local/bin/
 
 ## Common Issues
 
-If you encounter problems:
+### Out of Memory Errors
+
+If you see `Out of memory: Killed process` errors:
+
+```bash
+# Add swap space (16GB)
+sudo fallocate -l 16G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Make swap permanent
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### Other Common Problems
 
 1. Ensure your internet connection is stable
 2. Check if your system meets the minimum requirements
@@ -99,7 +130,7 @@ sudo apt install tmux
 tmux new-session -d -s nexus
 
 # Run the client in the session
-tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
+tmux send-keys -t nexus "nexus-client" C-m
 
 # To reconnect to the session later
 tmux attach -t nexus
