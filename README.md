@@ -99,7 +99,7 @@ sudo apt install tmux
 tmux new-session -d -s nexus
 
 # Run the client in the session
-tmux send-keys -t nexus "nexus-client" C-m
+tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
 
 # To reconnect to the session later
 tmux attach -t nexus
