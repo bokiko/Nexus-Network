@@ -73,7 +73,7 @@ sudo cp target/release/nexus-client /usr/local/bin/
 1. Create an account at [app.nexus.xyz](https://app.nexus.xyz)
 2. Run the client:
    ```bash
-   nexus-client
+   curl https://cli.nexus.xyz/ | sh
    ```
 3. Accept the Terms of Use
 4. Link your account when prompted (required for earning rewards)
@@ -115,7 +115,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 1. Ensure your internet connection is stable
 2. Check if your system meets the minimum requirements
-3. Restart the client with: `nexus-client`
+3. Restart the client with: `curl https://cli.nexus.xyz/ | sh`
 4. Join the Discord server for support
 
 ## Using tmux for Background Operation
@@ -130,7 +130,7 @@ sudo apt install tmux
 tmux new-session -d -s nexus
 
 # Run the client in the session
-tmux send-keys -t nexus "nexus-client" C-m
+tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
 
 # To reconnect to the session later
 tmux attach -t nexus
@@ -145,7 +145,7 @@ To automatically start the node when your system boots:
 # Create a startup script
 echo '#!/bin/bash
 tmux new-session -d -s nexus
-tmux send-keys -t nexus "nexus-client" C-m' > ~/start-nexus.sh
+tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m' > ~/start-nexus.sh
 
 # Make it executable
 chmod +x ~/start-nexus.sh
