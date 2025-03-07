@@ -51,23 +51,43 @@ Then run the CLI again to restart the setup process.
 
 ## 4. Installation and Setup
 
-### Step 1: Install tmux (Required)
+### Step 1: Install Prerequisites
 
+Update your system:
 ```bash
 sudo apt update
 ```
+
+Install Git:
+```bash
+sudo apt install -y git
+```
+
+Install Rust and Cargo:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+When prompted, select option 1 for standard installation by pressing Enter.
+
+Apply Rust environment to your current shell:
+```bash
+source "$HOME/.cargo/env"
+```
+
+### Step 2: Install tmux (Required)
 
 ```bash
 sudo apt install -y tmux
 ```
 
-### Step 2: Install the Nexus CLI
+### Step 3: Install the Nexus CLI
 
 ```bash
 curl https://cli.nexus.xyz/ | sh
 ```
 
-This single command will handle the installation process including all dependencies.
+This command will handle the remaining installation process.
 
 ## 5. Running Your Node
 
