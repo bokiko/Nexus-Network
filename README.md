@@ -94,13 +94,42 @@ On first run, you'll be asked to:
 To keep the node running after disconnecting, detach from the tmux session:
 - Press `Ctrl+B`, then press `D`
 
-### Step 4: Reconnect Later (When Needed)
+### Step 5: Set Up Automatic Startup (Optional)
 
-To check on your node later, reconnect to the tmux session:
+To make your node start automatically when your system reboots:
+
+Create a startup script:
 
 ```bash
-tmux attach -t nexus
+nano ~/start_nexus.sh
 ```
+
+Add this content to the file:
+
+```bash
+#!/bin/bash
+# Check if tmux session exists, if not create it and start Nexus
+if ! tmux has-session -t nexus 2>/dev/null; then
+    tmux new-session -d -s nexus
+    tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
+fi
+```
+
+Save the file (Ctrl+O, then Enter, then Ctrl+X)
+
+Make the script executable:
+
+```bash
+chmod +x ~/start_nexus.sh
+```
+
+Add to crontab to run at startup:
+
+```bash
+(crontab -l 2>/dev/null; echo "@reboot ~/start_nexus.sh") | crontab -
+```
+
+Now your Nexus node will automatically start in a tmux session whenever your system reboots.
 
 ## 6. Troubleshooting
 
