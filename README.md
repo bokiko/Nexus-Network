@@ -1,192 +1,131 @@
-# Nexus Network: Quick Setup Guide
+# Nexus Network Node Installation Guide
 
-## 1. About the Network
+> **NOTE:** Testnet II is over. Devnet mode is live.
 
-The Nexus Network is a distributed supercomputer that concentrates computing power into a single blockchain. It aims to condense the entire Internet into a single proof through the Nexus zkVM.
+## What is Nexus Network?
 
-When you connect to the network, your device becomes a node, contributing compute power to verify computations on the Internet.
+The Nexus Network is a distributed supercomputer that concentrates computing power into a single blockchain. By running a node, you contribute to this network and can earn NEX Points.
 
-- **Chain ID**: 393
-- **Native Token**: Nexus Token (NEX)
-- **RPC (HTTP)**: `https://rpc.nexus.xyz/http`
-- **RPC (WebSocket)**: `wss://rpc.nexus.xyz/ws`
+## Installation
 
-## 2. Hardware Requirements
+### Prerequisites (Install These First)
 
-To run a Nexus node effectively, your system should meet these minimum requirements:
-
-- **CPU**: 4+ cores recommended
-- **RAM**: 8GB+ recommended
-- **Storage**: 10GB of free space
-- **Network**: Stable internet connection (10+ Mbps)
-- **OS**: Ubuntu 20.04+ (Linux recommended)
-
-For virtual machines:
-- Ensure dedicated CPU cores
-- Allocate at least 8GB RAM
-- Use direct network access when possible
-
-## 3. Account Management
-
-### Account Options
-
-1. **Link to Nexus Account (Recommended)**
-   - Create an account at [app.nexus.xyz](https://app.nexus.xyz)
-   - Your contributions will earn NEX Points
-   - Track your progress on the leaderboard
-
-2. **Anonymous Proving**
-   - No account required
-   - No NEX Points earned
-
-### Changing Your Settings
-
-If you need to change your account linking:
+Before installing the Nexus client, you must install these dependencies:
 
 ```bash
-rm -rf ~/.nexus
-```
+# Update system
+sudo apt update && sudo apt upgrade -y
 
-Then run the CLI again to restart the setup process.
+# Install essential build tools
+sudo apt install -y build-essential pkg-config libssl-dev git-all curl nano cmake
 
-## 4. Installation and Setup
-
-### Step 1: Install Prerequisites
-
-Update your system:
-```bash
-sudo apt update
-```
-
-Install Git:
-```bash
-sudo apt install -y git
-```
-
-Install Rust and Cargo:
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-When prompted, select option 1 for standard installation by pressing Enter.
-
-Apply Rust environment to your current shell:
-```bash
+# Install Rust (required)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
+
+# Install protocol buffers
+sudo apt install -y protobuf-compiler
+
+# Add required Rust target
+rustup target add riscv32i-unknown-none-elf
 ```
 
-### Step 2: Install tmux (Required)
+### Nexus Client Installation
 
-```bash
-sudo apt install -y tmux
-```
+After installing the prerequisites, install the Nexus client:
 
-### Step 3: Install the Nexus CLI
-
-```bash
-curl https://cli.nexus.xyz/ | sh
-```
-
-This command will handle the remaining installation process.
-
-## 5. Running Your Node
-
-### Step 1: Start a tmux Session (Required)
-
-```bash
-tmux new -s nexus
-```
-
-### Step 2: Run the Installation Command in tmux
-
+#### One-Command Install
 ```bash
 curl https://cli.nexus.xyz/ | sh
 ```
 
-This command will install AND run the Nexus node in one step.
-
-On first run, you'll be asked to:
-1. Accept the Terms of Use
-2. Choose between anonymous or linked proving
-
-### Step 3: Detach from tmux
-
-To keep the node running after disconnecting, detach from the tmux session:
-- Press `Ctrl+B`, then press `D`
-
-### Step 5: Set Up Automatic Startup (Optional)
-
-To make your node start automatically when your system reboots:
-
-Create a startup script:
+#### Manual Installation
+If the quick install fails, you can download from source:
 
 ```bash
-nano ~/start_nexus.sh
+# Clone the repository
+git clone https://github.com/nexus-xyz/nexus-client
+cd nexus-client
+
+# Build and install
+cargo build --release
+sudo cp target/release/nexus-client /usr/local/bin/
 ```
 
-Add this content to the file:
+## Start Your Node
+
+1. Create an account at [app.nexus.xyz](https://app.nexus.xyz)
+2. Run the client:
+   ```bash
+   nexus-client
+   ```
+3. Accept the Terms of Use
+4. Link your account when prompted (required for earning rewards)
+
+## Earn NEX Points
+
+- NEX Points are earned by contributing compute power
+- Points are updated approximately every 15 minutes
+- You must link your account to receive points
+- View your earnings in the "Earnings" section of your account
+
+## Network Information
+
+| Property | Value |
+|----------|-------|
+| Chain ID | 393 |
+| Native Token | Nexus Token (NEX) |
+| RPC URL | `https://rpc.nexus.xyz/http` |
+| WebSocket | `wss://rpc.nexus.xyz/ws` |
+
+## Common Issues
+
+If you encounter problems:
+
+1. Ensure your internet connection is stable
+2. Check if your system meets the minimum requirements
+3. Restart the client with: `nexus-client`
+4. Join the Discord server for support
+
+## Using tmux for Background Operation
+
+To keep your node running in the background:
 
 ```bash
-#!/bin/bash
-# Check if tmux session exists, if not create it and start Nexus
-if ! tmux has-session -t nexus 2>/dev/null; then
-    tmux new-session -d -s nexus
-    tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
-fi
-```
+# Install tmux
+sudo apt install tmux
 
-Save the file (Ctrl+O, then Enter, then Ctrl+X)
+# Create a new tmux session
+tmux new-session -d -s nexus
 
-Make the script executable:
+# Run the client in the session
+tmux send-keys -t nexus "nexus-client" C-m
 
-```bash
-chmod +x ~/start_nexus.sh
-```
-
-Add to crontab to run at startup:
-
-```bash
-(crontab -l 2>/dev/null; echo "@reboot ~/start_nexus.sh") | crontab -
-```
-
-Now your Nexus node will automatically start in a tmux session whenever your system reboots.
-
-## 6. Troubleshooting
-
-### Installation Issues
-
-If the installation doesn't work properly:
-
-```bash
-tmux kill-session -t nexus
-```
-
-Then start over with a new tmux session.
-
-### Node Not Working
-
-Verify your node is running by reconnecting to the tmux session:
-
-```bash
+# To reconnect to the session later
 tmux attach -t nexus
+
+# To detach from session (keep it running)
+# Press Ctrl+B then D
 ```
 
-Check if it's properly linked to your account on [app.nexus.xyz](https://app.nexus.xyz)
-
-### tmux Session Management
-
-List all tmux sessions:
+To automatically start the node when your system boots:
 
 ```bash
-tmux ls
+# Create a startup script
+echo '#!/bin/bash
+tmux new-session -d -s nexus
+tmux send-keys -t nexus "nexus-client" C-m' > ~/start-nexus.sh
+
+# Make it executable
+chmod +x ~/start-nexus.sh
+
+# Add to crontab
+(crontab -l 2>/dev/null; echo "@reboot ~/start-nexus.sh") | crontab -
 ```
 
-Kill a stuck session:
+## Why Run a Nexus Node?
 
-```bash
-tmux kill-session -t nexus
-```
-
----
-
-**Note**: This guide was created by [Bokiko](https://github.com/bokiko) for the Cloudiko.io community.
+- Contribute to a global supercomputer network
+- Earn NEX Points for your contributions
+- Be part of building a verifiable Internet
+- Support the Nexus Layer-1 blockchain ecosystem
