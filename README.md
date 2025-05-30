@@ -1,162 +1,305 @@
-# Nexus Network Node Installation Guide
+# Nexus Network Node Setup Guide
 
-> **NOTE:** Testnet II is over. Devnet mode is live.
+> **STATUS:** Testnet II is over. Devnet mode is live.
 
 ## What is Nexus Network?
 
-The Nexus Network is a distributed supercomputer that concentrates computing power into a single blockchain. By running a node, you contribute to this network and can earn NEX Points.
+The Nexus Network is a distributed supercomputer where you contribute your computer's power to help process blockchain transactions. In return, you earn NEX Points as rewards.
 
-## System Requirements
+**Think of it like:** Your computer becomes part of a giant network that helps run a new type of internet.
 
-### Minimum Requirements
-- **CPU**: 4 cores
-- **RAM**: 8GB (will use swap if available)
-- **Storage**: 10GB free space
-- **Network**: Stable internet connection
+---
 
-### Recommended Requirements
-- **CPU**: 8+ cores
-- **RAM**: 16GB or more
-- **Storage**: 20GB SSD
-- **Network**: High-speed internet connection
+## Before You Start
 
-> **IMPORTANT**: The Nexus zkVM process is memory-intensive. If you have less than 12GB RAM, you may encounter "Out of Memory" errors. Adding swap space can help but will impact performance.
+### Check Your Computer Specs
 
-## Installation
+**Minimum Requirements (Will work but slow):**
+- 4-core CPU
+- 8GB RAM 
+- 10GB free storage
+- Stable internet
 
-### Prerequisites (Install These First)
+**Recommended (Better performance):**
+- 8+ core CPU
+- 16GB+ RAM
+- 20GB+ SSD storage
+- Fast internet
 
-Before installing the Nexus client, you must install these dependencies:
+> ⚠️ **IMPORTANT:** If you have less than 12GB RAM, you might get "Out of Memory" errors. We'll show you how to fix this later.
+
+---
+
+## Step 1: Prepare Your System
+
+### Update Everything First
+```bash
+sudo apt update
+```
 
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
+sudo apt upgrade -y
+```
 
-# Install essential build tools
-sudo apt install -y build-essential pkg-config libssl-dev git-all curl nano cmake
+### Install Basic Tools
+```bash
+sudo apt install -y build-essential
+```
 
-# Install Rust (required)
+### Install All Required Software
+```bash
+sudo apt install -y pkg-config libssl-dev git-all curl nano cmake tmux cron protobuf-compiler
+```
+
+---
+
+## Step 2: Install Rust Programming Language
+
+Rust is required to build the Nexus client.
+
+### Download and Install Rust
+```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+```
+
+### Activate Rust for Current Session
+```bash
 source "$HOME/.cargo/env"
+```
 
-# Install protocol buffers
-sudo apt install -y protobuf-compiler
-
-# Add required Rust target
+### Add Special Rust Component
+```bash
 rustup target add riscv32i-unknown-none-elf
 ```
 
-### Nexus Client Installation
+---
 
-After installing the prerequisites, install the Nexus client:
+## Step 3: Install Nexus Client
 
-#### One-Command Install
+### Quick Install Method
 ```bash
 curl https://cli.nexus.xyz/ | sh
 ```
 
-#### Manual Installation
-If the quick install fails, you can download from source:
-
+### Copy Client to System Location
+After the install completes, find and copy the client:
 ```bash
-# Clone the repository
-git clone https://github.com/nexus-xyz/nexus-client
-cd nexus-client
-
-# Build and install
-cargo build --release
-sudo cp target/release/nexus-client /usr/local/bin/
+sudo cp ~/.nexus/network-api/clients/cli/target/release/nexus-network /usr/local/bin/nexus-client
 ```
 
-## Start Your Node
+### Test Installation
+```bash
+nexus-client --help
+```
+You should see help text if it worked.
 
-1. Create an account at [app.nexus.xyz](https://app.nexus.xyz)
-2. Run the client:
-   ```bash
-   curl https://cli.nexus.xyz/ | sh
-   ```
-3. Accept the Terms of Use
-4. Link your account when prompted (required for earning rewards)
+---
 
-## Earn NEX Points
+## Step 4: Create Account and Start Node
 
-- NEX Points are earned by contributing compute power
-- Points are updated approximately every 15 minutes
-- You must link your account to receive points
-- View your earnings in the "Earnings" section of your account
+### 1. Create Your Account
+- Go to [app.nexus.xyz](https://app.nexus.xyz) in your web browser
+- Sign up with your email
+- **Important:** Remember your email - you'll need it to link your node
 
-## Network Information
+### 2. Start Your Node
+```bash
+nexus-client start
+```
 
-| Property | Value |
-|----------|-------|
-| Chain ID | 393 |
-| Native Token | Nexus Token (NEX) |
-| RPC URL | `https://rpc.nexus.xyz/http` |
-| WebSocket | `wss://rpc.nexus.xyz/ws` |
+### 3. Follow the Prompts
+- Accept the Terms of Use
+- Link your account using your email
+- Your node will start earning NEX Points automatically
 
-## Common Issues
+---
 
-### Out of Memory Errors
+## Step 5: Run Node in Background (Optional but Recommended)
 
-If you see `Out of memory: Killed process` errors:
+This keeps your node running even when you close the terminal.
+
+### Start Background Session
+```bash
+tmux new-session -d -s nexus
+```
+
+### Run Nexus in Background
+```bash
+tmux send-keys -t nexus "nexus-client start" C-m
+```
+
+### Check Your Node Anytime
+```bash
+tmux attach -t nexus
+```
+
+**To leave without stopping the node:** Press `Ctrl+B` then press `D`
+
+---
+
+## Step 6: Auto-Start When Computer Boots (Optional)
+
+### Enable Auto-Start Service
+```bash
+sudo systemctl enable cron
+```
 
 ```bash
-# Add swap space (16GB)
-sudo fallocate -l 16G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
+sudo systemctl start cron
+```
 
-# Make swap permanent
+### Create Startup Script
+```bash
+nano ~/start-nexus.sh
+```
+
+### Add This Content to the File
+```bash
+#!/bin/bash
+sleep 30
+tmux kill-session -t nexus 2>/dev/null
+tmux new-session -d -s nexus
+tmux send-keys -t nexus "nexus-client start" C-m
+echo "$(date): Nexus started automatically" >> ~/nexus-startup.log
+```
+
+### Save the File
+Press `Ctrl+X`, then `Y`, then `Enter`
+
+### Make Script Runnable
+```bash
+chmod +x ~/start-nexus.sh
+```
+
+### Test Your Script
+```bash
+~/start-nexus.sh
+```
+
+### Check if it Worked
+```bash
+tmux list-sessions
+```
+
+### Add to Auto-Start
+```bash
+crontab -e
+```
+
+Add this line at the bottom:
+```bash
+@reboot /home/$(whoami)/start-nexus.sh
+```
+
+Save with `Ctrl+X`, then `Y`, then `Enter`
+
+---
+
+## Fix Memory Problems (If You Get "Out of Memory" Errors)
+
+### Create Swap Space (16GB)
+```bash
+sudo fallocate -l 16G /swapfile
+```
+
+### Set Permissions
+```bash
+sudo chmod 600 /swapfile
+```
+
+### Make it a Swap File
+```bash
+sudo mkswap /swapfile
+```
+
+### Turn On Swap
+```bash
+sudo swapon /swapfile
+```
+
+### Make Swap Permanent
+```bash
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-### Other Common Problems
-
-1. Ensure your internet connection is stable
-2. Check if your system meets the minimum requirements
-3. Restart the client with: `curl https://cli.nexus.xyz/ | sh`
-4. Join the Discord server for support
-
-## Using tmux for Background Operation
-
-To keep your node running in the background:
-
+### Check if Swap is Working
 ```bash
-# Install tmux
-sudo apt install tmux
-
-# Create a new tmux session
-tmux new-session -d -s nexus
-
-# Run the client in the session
-tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m
-
-# To reconnect to the session later
-tmux attach -t nexus
-
-# To detach from session (keep it running)
-# Press Ctrl+B then D
+free -h
 ```
 
-To automatically start the node when your system boots:
+---
 
+## Understanding NEX Points
+
+- **What they are:** Rewards for contributing your computer power
+- **How often updated:** Every 15 minutes
+- **Requirement:** Must link your account to earn points
+- **Where to check:** Login at app.nexus.xyz and click "Earnings"
+
+---
+
+## Network Technical Info
+
+| Setting | Value |
+|---------|-------|
+| Chain ID | 393 |
+| Token | NEX |
+| RPC URL | `https://rpc.nexus.xyz/http` |
+| WebSocket | `wss://rpc.nexus.xyz/ws` |
+
+---
+
+## Common Problems and Solutions
+
+### Node Won't Start
+1. Check internet connection
+2. Try restarting: `nexus-client start`
+3. Check if you have enough free space: `df -h`
+
+### Out of Memory Errors
+- Follow the "Fix Memory Problems" section above
+- Consider upgrading your RAM if possible
+
+### Can't Find nexus-client Command
 ```bash
-# Create a startup script
-echo '#!/bin/bash
-tmux new-session -d -s nexus
-tmux send-keys -t nexus "curl https://cli.nexus.xyz/ | sh" C-m' > ~/start-nexus.sh
-
-# Make it executable
-chmod +x ~/start-nexus.sh
-
-# Add to crontab
-(crontab -l 2>/dev/null; echo "@reboot ~/start-nexus.sh") | crontab -
+sudo cp ~/.nexus/network-api/clients/cli/target/release/nexus-network /usr/local/bin/nexus-client
 ```
+
+### Node Stops Working
+```bash
+tmux kill-session -t nexus
+tmux new-session -d -s nexus
+tmux send-keys -t nexus "nexus-client start" C-m
+```
+
+---
+
+## Quick Commands Reference
+
+**Start node:** `nexus-client start`  
+**Check running nodes:** `tmux list-sessions`  
+**Connect to running node:** `tmux attach -t nexus`  
+**Leave node running:** Press `Ctrl+B` then `D`  
+**Restart node:** Kill session, then start new one  
+**Check system resources:** `htop` or `free -h`
+
+---
 
 ## Why Run a Nexus Node?
 
-- Contribute to a global supercomputer network
-- Earn NEX Points for your contributions
-- Be part of building a verifiable Internet
-- Support the Nexus Layer-1 blockchain ecosystem
+- 🏆 **Earn rewards** in NEX Points
+- 🌐 **Help build** the future of internet infrastructure  
+- 💻 **Use your computer** to contribute to something bigger
+- 🚀 **Be early** in a new blockchain ecosystem
+- 📈 **Potential future value** of earned NEX Points
+
+---
+
+## Need Help?
+
+- Join the official Discord server
+- Check the Nexus GitHub for updates
+- Visit app.nexus.xyz for account issues
+- Make sure you followed each step exactly as written
+
+**Remember:** Your node needs to stay running to earn points. The tmux background method is highly recommended!
