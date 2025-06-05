@@ -1,6 +1,6 @@
 # Nexus Network Node Setup Guide
 
-> **STATUS:** Testnet II is over. Devnet mode is live.
+> **STATUS:** Devnet is live! Join the network and start earning NEX Points.
 
 ## What is Nexus Network?
 
@@ -14,17 +14,17 @@ The Nexus Network is a distributed supercomputer where you contribute your compu
 
 ### Check Your Computer Specs
 
-**Minimum Requirements (Will work but slow):**
+**Minimum Requirements:**
 - 4-core CPU
 - 8GB RAM 
 - 10GB free storage
-- Stable internet
+- Stable internet connection
 
-**Recommended (Better performance):**
+**Recommended:**
 - 8+ core CPU
 - 16GB+ RAM
 - 20GB+ SSD storage
-- Fast internet
+- Fast internet connection
 
 > ⚠️ **IMPORTANT:** If you have less than 12GB RAM, you might get "Out of Memory" errors. We'll show you how to fix this later.
 
@@ -34,118 +34,141 @@ The Nexus Network is a distributed supercomputer where you contribute your compu
 
 ### Update Everything First
 ```bash
-sudo apt update
+sudo apt update && sudo apt upgrade -y
 ```
 
+### Install Required Packages
 ```bash
-sudo apt upgrade -y
-```
-
-### Install Basic Tools
-```bash
-sudo apt install -y build-essential
-```
-
-### Install All Required Software
-```bash
-sudo apt install -y pkg-config libssl-dev git-all curl nano cmake tmux cron protobuf-compiler
+sudo apt install -y build-essential pkg-config libssl-dev git-all curl nano cmake tmux cron protobuf-compiler
 ```
 
 ---
 
 ## Step 2: Install Rust Programming Language
 
-Rust is required to build the Nexus client.
-
 ### Download and Install Rust
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ```
 
-### Activate Rust for Current Session
+### Activate Rust
 ```bash
 source "$HOME/.cargo/env"
 ```
 
-### Add Special Rust Component
+### Add Required Target
 ```bash
 rustup target add riscv32i-unknown-none-elf
 ```
 
 ---
 
-## Step 3: Install Nexus Client
+## Step 3: Install Nexus CLI
 
-### Quick Install Method
+### Try Quick Install First
 ```bash
 curl https://cli.nexus.xyz/ | sh
 ```
 
-### Copy Client to System Location
-After the install completes, find and copy the client:
+### Reload Environment
 ```bash
-sudo cp ~/.nexus/network-api/clients/cli/target/release/nexus-network /usr/local/bin/nexus-client
+source ~/.bashrc
 ```
 
 ### Test Installation
 ```bash
-nexus-client --help
+nexus-network --help
 ```
-You should see help text if it worked.
 
----
+### If You Get GLIBC Error, Build From Source
 
-## Step 4: Create Account and Start Node
-
-### 1. Create Your Account
-- Go to [app.nexus.xyz](https://app.nexus.xyz) in your web browser
-- Sign up with your email
-- **Important:** Remember your email - you'll need it to link your node
-
-### 2. Start Your Node
+**Step 1:** Clone the repository
 ```bash
-nexus-client start
+git clone https://github.com/nexus-xyz/nexus-cli
 ```
 
-### 3. Follow the Prompts
-- Accept the Terms of Use
-- Link your account using your email
-- Your node will start earning NEX Points automatically
+**Step 2:** Go to the CLI directory
+```bash
+cd nexus-cli/clients/cli
+```
+
+**Step 3:** Build from source
+```bash
+cargo build --release
+```
+
+**Step 4:** Copy to your PATH
+```bash
+sudo cp target/release/nexus-network ~/.nexus/bin/
+```
+
+**Step 5:** Test again
+```bash
+nexus-network --help
+```
 
 ---
 
-## Step 5: Run Node in Background (Optional but Recommended)
+## Step 4: Configure Your Node ID
 
-This keeps your node running even when you close the terminal.
+### Create Config Directory
+```bash
+mkdir -p ~/.nexus
+```
 
-### Start Background Session
+### Create Config File
+```bash
+nano ~/.nexus/config.json
+```
+
+### Add Your Node ID
+```json
+{
+   "node_id": "YOUR_NODE_ID_HERE"
+}
+```
+
+Replace `YOUR_NODE_ID_HERE` with your actual node ID from [app.nexus.xyz](https://app.nexus.xyz)
+
+### Save the File
+Press `Ctrl+X`, then `Y`, then `Enter`
+
+---
+
+## Step 5: Start Your Node
+
+### Basic Start (Will stop when terminal closes)
+```bash
+nexus-network start --env beta
+```
+
+### Start in Background with tmux (Recommended)
+
+**Step 1:** Create tmux session
 ```bash
 tmux new-session -d -s nexus
 ```
 
-### Run Nexus in Background
+**Step 2:** Start node in tmux
 ```bash
-tmux send-keys -t nexus "nexus-client start" C-m
+tmux send-keys -t nexus "nexus-network start --env beta" C-m
 ```
 
-### Check Your Node Anytime
+**Step 3:** Check your node
 ```bash
 tmux attach -t nexus
 ```
 
-**To leave without stopping the node:** Press `Ctrl+B` then press `D`
+**Step 4:** Leave node running (don't close it)
+Press `Ctrl+B` then press `D`
 
 ---
 
-## Step 6: Auto-Start When Computer Boots (Optional)
+## Step 6: Auto-Start on Boot (Optional)
 
-### Enable Auto-Start Service
+### Enable Cron Service
 ```bash
-sudo systemctl enable cron
-```
-
-```bash
-sudo systemctl start cron
+sudo systemctl enable cron && sudo systemctl start cron
 ```
 
 ### Create Startup Script
@@ -153,20 +176,24 @@ sudo systemctl start cron
 nano ~/start-nexus.sh
 ```
 
-### Add This Content to the File
+### Add Script Content
 ```bash
 #!/bin/bash
+# Wait for system to fully boot
 sleep 30
+
+# Kill any existing nexus sessions
 tmux kill-session -t nexus 2>/dev/null
+
+# Create new tmux session and start nexus node
 tmux new-session -d -s nexus
-tmux send-keys -t nexus "nexus-client start" C-m
-echo "$(date): Nexus started automatically" >> ~/nexus-startup.log
+tmux send-keys -t nexus "nexus-network start --env beta" C-m
+
+# Log startup
+echo "$(date): Nexus node started automatically" >> ~/nexus-startup.log
 ```
 
-### Save the File
-Press `Ctrl+X`, then `Y`, then `Enter`
-
-### Make Script Runnable
+### Make Script Executable
 ```bash
 chmod +x ~/start-nexus.sh
 ```
@@ -174,11 +201,6 @@ chmod +x ~/start-nexus.sh
 ### Test Your Script
 ```bash
 ~/start-nexus.sh
-```
-
-### Check if it Worked
-```bash
-tmux list-sessions
 ```
 
 ### Add to Auto-Start
@@ -195,9 +217,11 @@ Save with `Ctrl+X`, then `Y`, then `Enter`
 
 ---
 
-## Fix Memory Problems (If You Get "Out of Memory" Errors)
+## Step 7: Fix Memory Problems (If Needed)
 
-### Create Swap Space (16GB)
+If you get "Out of Memory" errors, create swap space:
+
+### Create 16GB Swap File
 ```bash
 sudo fallocate -l 16G /swapfile
 ```
@@ -207,12 +231,12 @@ sudo fallocate -l 16G /swapfile
 sudo chmod 600 /swapfile
 ```
 
-### Make it a Swap File
+### Initialize Swap
 ```bash
 sudo mkswap /swapfile
 ```
 
-### Turn On Swap
+### Enable Swap
 ```bash
 sudo swapon /swapfile
 ```
@@ -222,26 +246,62 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-### Check if Swap is Working
+### Verify Swap is Active
 ```bash
 free -h
 ```
 
 ---
 
-## Understanding NEX Points
+## Node Management
 
-- **What they are:** Rewards for contributing your computer power
-- **How often updated:** Every 15 minutes
-- **Requirement:** Must link your account to earn points
-- **Where to check:** Login at app.nexus.xyz and click "Earnings"
+### Check if Node is Running
+```bash
+ps aux | grep nexus-network
+```
+
+### Check tmux Sessions
+```bash
+tmux list-sessions
+```
+
+### Connect to Running Node
+```bash
+tmux attach -t nexus
+```
+
+### Leave Node Running
+Press `Ctrl+B` then press `D`
+
+### Stop Node
+```bash
+tmux kill-session -t nexus
+```
+
+### Restart Node
+```bash
+tmux kill-session -t nexus
+tmux new-session -d -s nexus
+tmux send-keys -t nexus "nexus-network start --env beta" C-m
+```
 
 ---
 
-## Network Technical Info
+## Understanding NEX Points
+
+- **What they are:** Rewards for contributing computational power
+- **How earned:** Your node processes zkVM computations
+- **Update frequency:** Points update periodically
+- **Requirement:** Must have valid node ID and keep node running
+- **Where to check:** Login at [app.nexus.xyz](https://app.nexus.xyz)
+
+---
+
+## Network Information
 
 | Setting | Value |
 |---------|-------|
+| Network | Devnet |
 | Chain ID | 393 |
 | Token | NEX |
 | RPC URL | `https://rpc.nexus.xyz/http` |
@@ -249,57 +309,126 @@ free -h
 
 ---
 
-## Common Problems and Solutions
+## Troubleshooting
 
 ### Node Won't Start
-1. Check internet connection
-2. Try restarting: `nexus-client start`
-3. Check if you have enough free space: `df -h`
+1. Check internet connection: `ping google.com`
+2. Verify node ID in config: `cat ~/.nexus/config.json`
+3. Check system resources: `free -h`
+4. Try restarting: Kill session and start new one
+
+### GLIBC Version Error
+- Build from source using the instructions in Step 3
+- This happens when your system is older than the precompiled binary
 
 ### Out of Memory Errors
-- Follow the "Fix Memory Problems" section above
-- Consider upgrading your RAM if possible
+- Follow Step 7 to add swap space
+- Consider upgrading RAM if possible
+- Close unnecessary programs
 
-### Can't Find nexus-client Command
-```bash
-sudo cp ~/.nexus/network-api/clients/cli/target/release/nexus-network /usr/local/bin/nexus-client
-```
+### Node Not Connecting
+- Wait 5-10 minutes for initial connection
+- Check internet stability
+- Restart the node
+- Verify node ID is correct
 
-### Node Stops Working
+### Auto-Start Not Working
+- Check script exists: `ls -la ~/start-nexus.sh`
+- Check crontab: `crontab -l`
+- Check startup log: `cat ~/nexus-startup.log`
+- Test script manually: `~/start-nexus.sh`
+
+### Can't Find Node Process
 ```bash
-tmux kill-session -t nexus
-tmux new-session -d -s nexus
-tmux send-keys -t nexus "nexus-client start" C-m
+# Find all nexus processes
+pgrep -f nexus
+
+# Check what's using your ports
+netstat -tulpn | grep nexus
 ```
 
 ---
 
 ## Quick Commands Reference
 
-**Start node:** `nexus-client start`  
-**Check running nodes:** `tmux list-sessions`  
-**Connect to running node:** `tmux attach -t nexus`  
-**Leave node running:** Press `Ctrl+B` then `D`  
-**Restart node:** Kill session, then start new one  
+**Start node:** `nexus-network start --env beta`  
+**Check if running:** `ps aux | grep nexus-network`  
+**Create tmux session:** `tmux new-session -d -s nexus`  
+**Check sessions:** `tmux list-sessions`  
+**Connect to session:** `tmux attach -t nexus`  
+**Leave session running:** Press `Ctrl+B` then `D`  
+**Stop node:** `tmux kill-session -t nexus`  
 **Check system resources:** `htop` or `free -h`
+
+---
+
+## Important Notes
+
+### Terminal vs Background
+- **Terminal start:** Node stops when you close terminal
+- **tmux start:** Node keeps running even when you close terminal
+- **Always use tmux** for production setups
+
+### Node ID Requirements
+- Required for earning NEX Points
+- Get from [app.nexus.xyz](https://app.nexus.xyz)
+- Store in `~/.nexus/config.json`
+- Without it, node won't contribute properly
+
+### System Resources
+- Node is CPU and memory intensive
+- Monitor with `htop` command
+- Add swap if you have limited RAM
+- Ensure stable internet connection
 
 ---
 
 ## Why Run a Nexus Node?
 
-- 🏆 **Earn rewards** in NEX Points
-- 🌐 **Help build** the future of internet infrastructure  
-- 💻 **Use your computer** to contribute to something bigger
-- 🚀 **Be early** in a new blockchain ecosystem
-- 📈 **Potential future value** of earned NEX Points
+- 🏆 **Earn NEX Points** for contributing compute power
+- 🌐 **Support** the Nexus Network infrastructure  
+- 💻 **Utilize** your computer's idle processing power
+- 🚀 **Be part** of cutting-edge zkVM technology
+- 📈 **Early access** to the Nexus ecosystem
+- 🔒 **Help build** the verifiable internet
+
+---
+
+## Getting Your Node ID
+
+### Method 1: Nexus App
+1. Go to [app.nexus.xyz](https://app.nexus.xyz)
+2. Create account or login
+3. Find your node ID in the dashboard
+4. Copy it to your config file
+
+### Method 2: Let Node Generate One
+1. Start node without config file
+2. It will prompt you to create/enter node ID
+3. Follow the prompts
+4. Save the generated ID for future use
 
 ---
 
 ## Need Help?
 
-- Join the official Discord server
-- Check the Nexus GitHub for updates
-- Visit app.nexus.xyz for account issues
-- Make sure you followed each step exactly as written
+- **Official Docs:** [docs.nexus.xyz](https://docs.nexus.xyz)
+- **Discord Community:** Join the official Nexus Discord
+- **Account Issues:** Visit [app.nexus.xyz](https://app.nexus.xyz)
+- **Technical Issues:** Check GitHub repositories
+- **Network FAQ:** [Network FAQ](https://docs.nexus.xyz/layer-1/network-devnet/faq)
 
-**Remember:** Your node needs to stay running to earn points. The tmux background method is highly recommended!
+---
+
+## Final Checklist
+
+Before you finish, make sure:
+
+- ✅ Node is running in tmux session
+- ✅ Node ID is configured correctly
+- ✅ Auto-start script is set up (optional)
+- ✅ You can connect to your node with `tmux attach -t nexus`
+- ✅ Node shows as connected to the network
+- ✅ You can check your NEX Points at app.nexus.xyz
+
+**Remember:** Keep your node running 24/7 to maximize NEX Point earnings!
